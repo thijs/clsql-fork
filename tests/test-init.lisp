@@ -278,6 +278,18 @@
 (defparameter basenode nil)
 (defparameter derivednode1 nil)
 (defparameter derivednode2 nil)
+(defparameter node nil)
+(defparameter setting1 nil)
+(defparameter setting2 nil)
+(defparameter user1 nil)
+(defparameter user2 nil)
+(defparameter theme1 nil)
+(defparameter theme2 nil)
+(defparameter loc1 nil)
+(defparameter loc2 nil)
+(defparameter subloc1 nil)
+(defparameter subloc2 nil)
+
 
 (defun test-initialise-database ()
   (test-basic-initialize)
