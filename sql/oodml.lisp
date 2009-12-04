@@ -247,14 +247,14 @@
                  (list (sql-expression :attribute (view-class-slot-column slot))
                        (db-value-from-slot slot value database)))))
       (let* ((view-class (or this-class (class-of obj)))
+             (pk-slot (car (keyslots-for-class view-class)))
              (view-class-table (view-table view-class))
              (pclass (car (class-direct-superclasses view-class))))
         (when (normalisedp view-class)
           (setf pk (update-records-from-instance obj :database database
                                                  :this-class pclass))
-          (let ((pk-slot (car (keyslots-for-class view-class))))
-            (when pk-slot
-              (setf (slot-value obj (slot-definition-name pk-slot)) pk))))
+          (when pk-slot
+            (setf (slot-value obj (slot-definition-name pk-slot)) pk)))
         (let* ((slots (remove-if-not #'slot-storedp
                                      (if (normalisedp view-class)
                                          (ordered-class-direct-slots view-class)
@@ -280,9 +280,16 @@
                  (insert-records :into (sql-expression :table view-class-table)
                                  :av-pairs record-values
                                  :database database)
-                 (setf pk (or pk (car (query "select last_insert_id();"
-                                             :flatp t :field-names nil
-                                             :database database))))
+                 (if (or (and (listp (view-class-slot-db-constraints pk-slot))
+                              (member :auto-increment (view-class-slot-db-constraints pk-slot)))
+                         (eql (view-class-slot-db-constraints pk-slot) :auto-increment))
+                     (setf pk (or pk
+                                  (car (query "SELECT LAST_INSERT_ID();"
+                                              :flatp t :field-names nil
+                                              :database database))))
+                     (setf pk (or pk
+                                  (slot-value obj (slot-definition-name
+                                                   (car (keyslots-for-class view-class)))))))
                  (when (eql this-class nil)
                    (setf (slot-value obj 'view-database) database)))))))
     pk))
@@ -899,7 +906,7 @@ maximum of MAX-LEN instances updated in each query."
                                                 :caching nil
                                                 :database (view-database object))))
               (slot-name (slot-definition-name slot-def)))
-        
+
           ;; If current class is normalised and wanted slot is not
           ;; a direct member, recurse up
           (if (and (normalisedp class)
