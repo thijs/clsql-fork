@@ -273,23 +273,23 @@
                                          obj :database database
                                          :this-class view-class)
                                  :database database)
-                 (setf pk (or pk
-                              (slot-value obj (slot-definition-name
-                                               (car (keyslots-for-class view-class)))))))
+                 (when pk-slot
+                   (setf pk (or pk
+                                (slot-value obj (slot-definition-name pk-slot))))))
                 (t
                  (insert-records :into (sql-expression :table view-class-table)
                                  :av-pairs record-values
                                  :database database)
-                 (if (or (and (listp (view-class-slot-db-constraints pk-slot))
-                              (member :auto-increment (view-class-slot-db-constraints pk-slot)))
-                         (eql (view-class-slot-db-constraints pk-slot) :auto-increment))
-                     (setf pk (or pk
-                                  (car (query "SELECT LAST_INSERT_ID();"
-                                              :flatp t :field-names nil
-                                              :database database))))
-                     (setf pk (or pk
-                                  (slot-value obj (slot-definition-name
-                                                   (car (keyslots-for-class view-class)))))))
+                 (when pk-slot
+                   (if (or (and (listp (view-class-slot-db-constraints pk-slot))
+                                (member :auto-increment (view-class-slot-db-constraints pk-slot)))
+                           (eql (view-class-slot-db-constraints pk-slot) :auto-increment))
+                       (setf pk (or pk
+                                    (car (query "SELECT LAST_INSERT_ID();"
+                                                :flatp t :field-names nil
+                                                :database database))))
+                       (setf pk (or pk
+                                    (slot-value obj (slot-definition-name pk-slot))))))
                  (when (eql this-class nil)
                    (setf (slot-value obj 'view-database) database)))))))
     pk))
